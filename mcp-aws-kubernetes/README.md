@@ -1,227 +1,316 @@
-# 🧠 AI-Powered Kubernetes MCP Server (Minikube + Gemini + kubectl-ai)
+# 🤖 AI-Powered Kubernetes MCP Server
 
-This project deploys an AI-connected Kubernetes MCP (Model-Controller-Prompt) server on an EC2 instance using **Minikube**, **Google Gemini**, and **kubectl-ai**. The MCP server allows natural-language interaction with Kubernetes — powered by a custom schema and FastAPI backend.
+Deploy an AI-connected Kubernetes MCP (Model Context Protocol) server on AWS EKS using **kubectl-ai**, **Google Gemini**, and **FastAPI**. This project demonstrates how to create a natural language interface for Kubernetes operations.
 
----
+## 🏗️ Architecture Overview
 
-## 📖 Full Guide Available
+### 🌟 Supported Environments
 
-📝 Check out the full Medium article walkthrough here:  
-👉 [**Read on Medium**](https://medium.com/@samuel.colon.jr/ai-powered-kubernetes-mcp-server-4d6de6233f65)
+| Environment | Use Case | Deployment |
+|-------------|----------|------------|
+| **Amazon EKS** | Production, Enterprise | AWS Managed Kubernetes |
+| **Minikube** | Development, Learning | Local Single-Node Cluster |
 
----
+### 🏗️ System Components
 
-## 🧱 Architecture Overview
-
-- **EC2 Ubuntu Instance** (T2.Medium, 30 GiB EBS)
-- **Minikube** (Docker driver)
-- **kubectl-ai** – Google’s CLI for AI-driven Kubernetes commands
-- **Gemini API (1.5 Flash)** – Natural language LLM
-- **FastAPI MCP Server** – Hosts custom `mcp-schema.json` for command interpretation
-- **NodePort Service** – Exposes MCP server endpoint
+- **EKS Cluster** (Production) or **Minikube** (Development)
+- **kubectl-ai** – Google's CLI for AI-driven Kubernetes commands
+- **Gemini API (2.5 Flash)** – Natural language LLM
+- **FastAPI MCP Server** – Optional: Hosts custom `mcp-schema.json` for command interpretation
+- **LoadBalancer/NodePort Service** – Exposes MCP server endpoint
 - **Demo App** – `my-website-app` deployed for live testing
 
 ---
 
+## 🚀 Quick Start - EKS Deployment
+
+### Option 1: Automated Deployment (Recommended)
+```bash
+# Clone the repository
+git clone https://github.com/your-repo/mcp-aws-kubernetes.git
+cd mcp-aws-kubernetes
+
+# Set your Gemini API key
+export GEMINI_API_KEY="your-gemini-api-key"
+
+# Run automated deployment
+cd scripts
+./deploy-eks.sh
+```
+
+### Option 2: Manual Step-by-Step Deployment
+
 ## 📦 Prerequisites
 
-| Tool        | Required |
-|-------------|----------|
-| Ubuntu 22.04 EC2       | ✅ |
-| Docker (non-root)      | ✅ |
-| Minikube               | ✅ |
-| Go 1.22+               | ✅ |
-| kubectl                | ✅ |
-| Gemini API Key         | ✅ |
+### Common Requirements
+| Tool | Version | Required |
+|------|---------|----------|
+| kubectl | 1.28+ | ✅ |
+| Gemini API Key | Latest | ✅ |
+| Docker | 20.10+ | ✅ |
+
+### EKS Specific
+| Tool | Version | Required |
+|------|---------|----------|
+| eksctl | 0.150+ | ✅ |
+| AWS CLI | 2.0+ | ✅ |
+| AWS Credentials | - | ✅ |
 
 ---
 
-## ⚙️ Setup Steps
+## 🌩️ EKS Manual Deployment Guide
 
-### 🔐 1. Create Security Group
-
-- Allow SSH (22)
-- Allow NodePort range: `30000–32767` (TCP)
-- Allow HTTP (80)
----
-
-### ☁️ 2. Launch EC2 Instance
-
-- AMI: Ubuntu 22.04+
-- Type: `t2.medium` or higher
-- Disk: `30 GiB`
-- User-data:
-  ```bash
-  #!/bin/bash
-
-set -e
-
-# Update system and install essentials
-apt-get update -y && apt-get upgrade -y
-apt-get install -y curl wget git ca-certificates gnupg lsb-release apt-transport-https software-properties-common
-
-# ---- Python ----
-apt-get install -y python3 python3-pip
-update-alternatives --install /usr/bin/python python /usr/bin/python3 1
-update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-
-# ---- Docker ----
-apt-get install -y docker.io
-systemctl enable docker
-systemctl start dockeru
-  ```
-
----
-
-### 🧑‍💻 3. Initial Setup After SSH
+### 1. Prerequisites Setup
 
 ```bash
-sudo usermod -aG docker ubuntu
-sudo reboot
+# Install eksctl
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+
+# Install AWS CLI v2
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+
+# Configure AWS credentials
+aws configure
 ```
 
----
-
-### 📦 4. Install Requirements
+### 2. Create EKS Cluster
 
 ```bash
-# kubectl
+# Create cluster using eksctl (simplified)
+eksctl create cluster \
+  --name mcp-k8s-cluster \
+  --region us-east-1 \
+  --version 1.28 \
+  --node-type t3.medium \
+  --nodes 2 \
+  --with-oidc \
+  --managed
 
-# Go
-  ```
-
-Follow official Minikube install guide:  
-👉 https://minikube.sigs.k8s.io/docs/start/
-
----
-
-### 📁 5. Clone Repos
-
-```bash
-git clone https://github.com/your-username/k8s-mcp-server-prod.git
-cd k8s-mcp-server-prod
-
-git clone https://github.com/GoogleCloudPlatform/kubectl-ai.git
-cd kubectl-ai
-go build -o kubectl-ai ./cmd/kubectl-ai
-sudo mv kubectl-ai /usr/local/bin/
+# Verify cluster
+kubectl get nodes
 ```
 
----
-
-### ☸️ 6. Start Minikube
+### 3. Deploy MCP Server to EKS
 
 ```bash
-minikube start --driver=docker
-```
+# Create Gemini API secret
+kubectl create secret generic gemini-api-key \
+  --from-literal=GEMINI_API_KEY=your-gemini-api-key
 
----
-
-### 🔌 7. Deploy MCP + App
-
-```bash
+# Deploy all manifests
 kubectl apply -f rbac.yaml
-kubectl apply -f my-website-app.yaml
+kubectl apply -f mock-app.yaml
 kubectl apply -f mcp-deployment.yaml
 kubectl apply -f mcp-service.yaml
+
+# Wait for deployments
+kubectl wait --for=condition=available --timeout=300s deployment/mcp-server
+kubectl wait --for=condition=available --timeout=300s deployment/my-website-app
 ```
 
----
-
-### 🔍 8. Test MCP Server
+### 4. Install and Configure kubectl-ai
 
 ```bash
-minikube ip  # e.g. 192.168.49.2
-kubectl get svc mcp-service  # Note NodePort, e.g. 31390
+# Install kubectl-ai from pre-built binary
+cd /tmp
+wget https://github.com/GoogleCloudPlatform/kubectl-ai/releases/download/v0.0.18/kubectl-ai_Linux_x86_64.tar.gz
+tar -zxvf kubectl-ai_Linux_x86_64.tar.gz
+chmod +x kubectl-ai
+sudo mv kubectl-ai /usr/local/bin/
+rm -f kubectl-ai_Linux_x86_64.tar.gz
 
-curl http://192.168.49.2:31390/mcp-schema.json
+# Verify installation
+kubectl-ai --help
 ```
 
-✅ Should return your schema in JSON.
-
----
-
-### 📘 9. Configure `kubectl-ai`
+### 5. Configure kubectl-ai for EKS
 
 ```bash
+# Method 1: LoadBalancer (if external IP is available)
+export EXTERNAL_IP=$(kubectl get svc mcp-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+# Method 2: NodePort (fallback method that works reliably)
+NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+if [ -z "$NODE_IP" ]; then
+    NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+fi
+NODEPORT=$(kubectl get svc mcp-service -o jsonpath='{.spec.ports[0].nodePort}')
+
+echo "Node IP: $NODE_IP"
+echo "NodePort: $NODEPORT"
+
+# Create kubectl-ai config (works without MCP server endpoint)
 mkdir -p ~/.kube/kubectl-ai
-nano ~/.kube/kubectl-ai/config.yaml
-```
-
-Paste:
-
-```yaml
+cat > ~/.kube/kubectl-ai/config.yaml << EOF
 mcp:
-  endpoint: http://192.168.49.2:31390/mcp-schema.json
-  name: mcp-server
+  endpoint: http://$NODE_IP:$NODEPORT/mcp-schema.json
+  name: eks-mcp-server
 
 llm:
   provider: gemini
-  model: gemini-1.5-flash
+  model: gemini-2.5-flash
+EOF
+
+# Export Gemini API key
+export GEMINI_API_KEY="your-gemini-api-key"
+echo 'export GEMINI_API_KEY="your-gemini-api-key"' >> ~/.bashrc
 ```
 
 ---
 
-### 🔑 10. Create Gemini Secret
+## 🧪 Testing & Validation
+
+### Test kubectl-ai (Works without MCP endpoint)
 
 ```bash
-kubectl create secret generic gemini-api-key   --from-literal=GEMINI_API_KEY=your-key
+# Set Gemini API key
+export GEMINI_API_KEY=your-gemini-api-key
 
-export GEMINI_API_KEY=your-key
-echo 'export GEMINI_API_KEY=your-key' >> ~/.bashrc
-source ~/.bashrc
+# Test basic functionality
+kubectl ai --model gemini-2.5-flash "List all pods in default namespace"
+kubectl ai --model gemini-2.5-flash "List all namespaces"
+kubectl ai --model gemini-2.5-flash "Scale my-website-app to 6 replicas"
+kubectl ai --model gemini-2.5-flash "Deploy nginx pod in test namespace"
+kubectl ai --model gemini-2.5-flash "Expose nginx-pod as LoadBalancer on port 80"
 ```
 
----
-
-### 🧠 11. Use `kubectl ai`
+### Advanced AI Commands
 
 ```bash
-kubectl ai --model gemini-1.5-flash
+# Interactive prompts that work
+kubectl ai --model gemini-2.5-flash "Create a namespace called production"
+kubectl ai --model gemini-2.5-flash "Deploy a redis pod in production namespace"
+kubectl ai --model gemini-2.5-flash "Show me all services across all namespaces"
+kubectl ai --model gemini-2.5-flash "Get logs from my-website-app pods"
+kubectl ai --model gemini-2.5-flash "Describe the mcp-server deployment"
 ```
 
 ---
 
-## 💬 Demo Prompts
+## 💬 Working AI Commands Examples
 
-You can now ask `kubectl ai` things like:
+| Category | Example Commands | Status |
+|----------|------------------|---------|
+| **Pod Management** | "List all pods", "Deploy nginx pod in test namespace" | ✅ Working |
+| **Deployments** | "Scale app to 5 replicas", "Restart deployment" | ✅ Working |
+| **Cluster Info** | "Show nodes", "List namespaces", "Get cluster events" | ✅ Working |
+| **Services** | "Expose pod as LoadBalancer", "Show all services" | ✅ Working |
+| **Troubleshooting** | "Get logs from pods", "Describe deployment" | ✅ Working |
 
-| Prompt | Action |
-|--------|--------|
-| List all pods in the default namespace | `list_pods` |
-| Restart the my-website-app deployment | `restart_deployment` |
-| Scale the my-website-app to 5 replicas | `scale_deployment` |
-| Delete pod `my-website-app-xyz` | `delete_pod` |
-| Get logs from pod in default namespace | `get_pod_logs` |
-| List all nodes | `get_nodes` |
-| Get cluster namespaces | `get_namespaces` |
-| Get events in default namespace | `get_events` |
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+1. **MCP Endpoint Not Accessible**
+   - kubectl-ai works without MCP endpoint
+   - MCP server is optional for basic functionality
+   - Check service status: `kubectl get svc mcp-service`
+
+2. **LoadBalancer Pending**
+   - Use NodePort method instead
+   - Check AWS Load Balancer Controller installation
+
+3. **kubectl-ai Command Not Found**
+   ```bash
+   # Reinstall kubectl-ai
+   cd /tmp
+   wget https://github.com/GoogleCloudPlatform/kubectl-ai/releases/download/v0.0.18/kubectl-ai_Linux_x86_64.tar.gz
+   tar -zxvf kubectl-ai_Linux_x86_64.tar.gz
+   chmod +x kubectl-ai
+   sudo mv kubectl-ai /usr/local/bin/
+   ```
+
+### Debug Commands
+
+```bash
+# Check cluster status
+kubectl get nodes
+kubectl get all
+
+# Check MCP server logs
+kubectl logs -f deployment/mcp-server
+
+# Check service endpoints
+kubectl get svc
+kubectl describe svc mcp-service
+
+# Test Gemini API connectivity
+kubectl ai --model gemini-2.5-flash "test connection"
+```
 
 ---
 
 ## 🧹 Cleanup
 
 ```bash
+# Delete MCP resources
 kubectl delete -f mcp-service.yaml
 kubectl delete -f mcp-deployment.yaml
-kubectl delete -f my-website-app.yaml
+kubectl delete -f mock-app.yaml
 kubectl delete -f rbac.yaml
 kubectl delete secret gemini-api-key
+
+# Delete EKS cluster
+eksctl delete cluster --name mcp-k8s-cluster --region us-east-1
 ```
+
+---
+
+## 🗂️ Project Structure
+
+```
+mcp-aws-kubernetes/
+├── scripts/
+│   ├── deploy-eks.sh          # Automated EKS deployment
+│   ├── deploy-minikube.sh     # Minikube deployment
+│   └── eks-setup.sh           # Prerequisites setup
+├── k8s-manifests/
+│   ├── rbac.yaml              # Service account & permissions
+│   ├── mcp-deployment.yaml    # MCP server deployment
+│   ├── mcp-service.yaml       # Load balancer service
+│   └── demo-app.yaml          # Demo application
+├── terraform/
+│   └── main.tf                # Infrastructure as code
+├── eks-cluster.yaml           # EKS cluster configuration
+├── mcp-schema.json           # MCP protocol schema
+└── README.md                 # This file
+```
+
+---
+
+## 🎯 Key Features
+
+- ✅ **Natural Language Interface**: Talk to Kubernetes in plain English
+- ✅ **Production Ready**: EKS with Load Balancer and Auto-scaling
+- ✅ **AI-Powered**: Google Gemini 2.5 Flash for intelligent responses
+- ✅ **Secure**: RBAC configuration with least privilege
+- ✅ **Scalable**: Multi-replica deployments with health checks
+- ✅ **Interactive**: Approval prompts for destructive operations
+
+---
+
+## 📚 Next Steps
+
+1. **Extend Functionality**: Add more custom MCP actions in `mcp-schema.json`
+2. **Monitor**: Set up Prometheus and Grafana for cluster monitoring
+3. **CI/CD**: Integrate with GitHub Actions for automated deployments
+4. **Security**: Implement network policies and pod security standards
+5. **Multi-cluster**: Extend to manage multiple Kubernetes clusters
 
 ---
 
 ## 🙌 Acknowledgements
 
 - [Google kubectl-ai](https://github.com/GoogleCloudPlatform/kubectl-ai)
-- [Minikube](https://minikube.sigs.k8s.io/)
+- [Amazon EKS](https://aws.amazon.com/eks/)
 - [Gemini API](https://ai.google.dev/)
 - [FastAPI](https://fastapi.tiangolo.com/)
 
 ---
 
-## 📌 Next Steps
-
-- Add HTTPS ingress controller with TLS
-- Package MCP as a Helm chart
-- Add multi-model support for OpenAI or Anthropic
+**✅ Success Status**: kubectl-ai is working perfectly with Gemini 2.5 Flash for natural language Kubernetes operations!
