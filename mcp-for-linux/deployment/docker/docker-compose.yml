@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Main MCP Linux Debug Agent
+  mcp-linux-agent:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    container_name: mcp-linux-debug-agent
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - MCP_ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    volumes:
+      - agent_logs:/app/logs
+      - /var/log:/host/var/log:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    networks:
+      - mcp-network
+    privileged: true  # Required for system monitoring
+    pid: host         # Required for process monitoring
+    stdin_open: true
+    tty: true
+    command: ["python3", "main.py"]
+    
+  # HTTP API Server
+  mcp-linux-http:
+    build:
+      context: ../..
+      dockerfile: deployment/docker/Dockerfile
+    container_name: mcp-linux-http-api
+    restart: unless-stopped
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - MCP_ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"
+    volumes:
+      - agent_logs:/app/logs
+      - /var/log:/host/var/log:ro
+    networks:
+      - mcp-network
+    privileged: true
+    command: ["python3", "main.py", "--http"]
+    depends_on:
+      - mcp-linux-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # Nginx Reverse Proxy (Optional)
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: mcp-nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - mcp-network
+    depends_on:
+      - mcp-linux-http
+    profiles:
+      - proxy
+
+networks:
+  mcp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  agent_logs:
+    driver: local

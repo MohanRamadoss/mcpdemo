@@ -1,0 +1,177 @@
+AI powered Kubernetes MCP server
+
+Thank you for clicking on my latest article. My curiosity has grown tremendously with all the hype in regards to MCP servers. Once Google Kubectl AI was announced, I knew I had to attempt to create my own Kubernetes MCP server. That’s how this project walkthrough started.
+
+In this project I will be providing the necessary steps to create an AI powered Kubernetes MCP server. Although the walkthrough is easy to follow and doesn’t take much time, I plan to improve it by automating it in the future.
+
+This was a fun and interesting project for me and I hope you enjoy it as well.
+
+Before we start, if you would like to gain a better understanding of what an MCP server is, I found this great article over on Medium.
+
+Also, all actions that can be performed via kubectl ai are located within the mcp-schema.json file that will be included when cloning my repo later on.
+
+GitHub repo
+
+Let’s get started!!!
+
+Step 1: Create the security group
+Log into your AWS console and create a SG (mcp-server-sg) with the following inbound rules:
+
+Custom TCP 3000–32767 (Kubernetes NodePort range)
+
+SSH 22
+
+HTTP 80
+
+
+Step 2: Launch an EC2 instance
+Now we need to create an EC2 instance with the following specifications:
+
+Ubuntu
+
+T2.Medium
+
+30 GiB
+
+Create a Key pair name (k8-mcp-server)
+
+Attach the Security group we created in Step 1. (mcp-server-sg)
+
+Bootstrap script that installs OS updates, Python and Docker. (This goes in the advanced section in the EC2 creation screen)
+
+#!/bin/bash
+
+set -e
+
+# Update system and install essentials
+apt-get update -y && apt-get upgrade -y
+apt-get install -y curl wget git ca-certificates gnupg lsb-release apt-transport-https software-properties-common
+
+# ---- Python ----
+apt-get install -y python3 python3-pip
+update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+# ---- Docker ----
+apt-get install -y docker.io
+systemctl enable docker
+systemctl start docker
+
+
+
+
+Step 3: Configuring the EC2 instance
+For the sake of this project, I will connect via EC2 Instance Connect.
+
+The first thing we need to do is add the ubuntu user to the docker group so that we can run Docker commands without using sudo.
+
+sudo usermod -aG docker ubuntu
+
+sudo reboot
+Wait for the instance to come back up then log back into it. Now we can start installing everything else starting with kubectl.
+
+Install kubectl:
+
+curl -LO https://dl.k8s.io/release/v1.30.1/bin/linux/amd64/kubectl
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+kubectl version --client
+install minikube:
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+chmod +x minikube-linux-amd64
+sudo mv minikube-linux-amd64 /usr/local/bin/minikube
+minikube version
+Clone project repo:
+
+git clone https://github.com/samcolon/k8s_mcp_server_prod.git
+Clone Google kubectl ai repo:
+
+cd ~
+git clone https://github.com/GoogleCloudPlatform/kubectl-ai.git
+Install Go:
+
+wget https://go.dev/dl/go1.22.3.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.22.3.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+go version
+Install and build kubectl ai:
+
+cd ~/kubectl-ai
+go build -o kubectl-ai ./cmd
+sudo mv kubectl-ai /usr/local/bin/
+kubectl ai --help
+Start minikube:
+
+minikube start --driver=docker
+Before we apply all of the Kubernetes manifests, we need to create a Kubernetes secret utilizing a Gemini API key. You can create your own by visiting https://aistudio.google.com/ and clicking on Get API key on the upper right hand side.
+
+Jot down the API key after it is created so we can add it to the Kubernetes secret command below.
+
+Command to create Kubernetes secret:
+
+kubectl create secret generic gemini-api-key \
+  --from-literal=GEMINI_API_KEY=your-api-key-here
+Please make sure to create the Kubernetes secret otherwise the pod will fail to create.
+
+Now we need to export the Gemini API key into our EC2 shell. You can do this by executing:
+
+echo 'export GEMINI_API_KEY=your-api-key-here' >> ~/.bashrc
+source ~/.bashrc
+Next, cd into the k8s_mcp_server_prod directory. From there we can deploy the Kubernetes manifests.
+
+kubectl apply -f mcp-deployment.yaml
+kubectl apply -f mcp-service.yaml
+kubectl apply -f mock-app.yaml
+kubectl apply -f rbac.yaml
+Get the minikube IP and NodePort (Take note of these two and put aside for now)
+
+minikube ip
+kubectl get svc mcp-service
+In my case, my minikube ip is 192.168.49.2 and NodePort is 30173.
+
+The next step is to add the following into our kubectl-ai config.yaml. It does not exist at the moment but we can create it with this command:
+
+mkdir -p ~/.kube/kubectl-ai
+nano ~/.kube/kubectl-ai/config.yaml
+Add the below to the kubectl-ai file and make sure to enter your minikube IP and NodePort prior to saving it.
+
+***Ctrl o, Enter, Ctrl x to save the file in nano***
+
+mcp:
+  endpoint: http://MiniKubeIP:<NodePort>/mcp-schema.json
+  name: mcp-server
+
+llm:
+  provider: gemini
+  model: gemini-1.5-flash
+We can use the minikube IP and NodePort to within a curl command to test if our mcp-schema.json is reachable.
+
+curl http://minikubeIP:<NodePort>/mcp-schema.json
+If everything was done correctly, you should now see the list of commands that are located inside of the schema.
+
+This also means that the MCP server will be able to translate user prompts into commands via kubectl ai. Since we are using the free version, the correct command is kubectl ai — model gemini-1.5-flash. (Using kubectl ai only works if you are subscribed to the pro version of Gemini)
+
+Let’s test it out:
+Please list all running pods
+
+
+Please scale my-website-app to 8 pods
+
+
+Please list all running pods for my-website-app
+
+
+Get logs for my-website-app-866949d66b-677d9
+
+
+More actions can be added via the mcp-schema.json file.
+
+Thank you once again for reading this guide. I hope I was able to provide a clear path to building your own AI powered Kubernetes environment. This project was a fun blend of DevOps, LLM integration and practical cloud deployment. I encourage you to try extending this further.
+
+AWS
+AI
+Kubernetes
+Mcp Server
+DevOps

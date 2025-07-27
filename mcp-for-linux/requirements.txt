@@ -1,0 +1,15 @@
+# Core MCP dependencies
+mcp>=1.0.0
+fastmcp>=0.9.0
+
+# AI and language models
+google-generativeai>=0.3.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# System monitoring
+psutil>=5.9.0
+
+# HTTP and async support (for potential HTTP mode)
+httpx>=0.25.0

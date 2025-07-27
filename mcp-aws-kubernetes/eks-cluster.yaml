@@ -1,0 +1,247 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: mcp-k8s-cluster
+  region: us-east-1
+  version: "1.28"
+
+# VPC Configuration
+vpc:
+  enableDnsHostnames: true
+  enableDnsSupport: true
+  cidr: "10.0.0.0/16"
+  subnets:
+    public:
+      us-east-1a:
+        cidr: "10.0.1.0/24"
+      us-east-1b:
+        cidr: "10.0.2.0/24"
+    private:
+      us-east-1a:
+        cidr: "10.0.10.0/24"
+      us-east-1b:
+        cidr: "10.0.20.0/24"
+
+# IAM Configuration
+iam:
+  withOIDC: true
+
+# Managed node groups
+managedNodeGroups:
+  - name: mcp-managed-workers
+    instanceTypes: 
+      - t3.medium
+      - t3.large
+    amiFamily: AmazonLinux2
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 3
+    volumeSize: 30
+    volumeType: gp3
+    privateNetworking: true
+    ssh:
+      enableSSM: true
+    labels:
+      nodegroup-type: "managed"
+      workload: "mcp-server"
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      NodeGroup: "managed-workers"
+    updateConfig:
+      maxUnavailable: 1
+
+# Add-ons
+addons:
+  - name: vpc-cni
+    version: latest
+    configurationValues: |-
+      env:
+        ENABLE_POD_ENI: "false"
+        ENABLE_PREFIX_DELEGATION: "false"
+        POD_SECURITY_GROUP_ENFORCING_MODE: "standard"
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7
+
+# Additional cluster configuration
+secretsEncryption:
+  keyARN: ""  # Optional: Provide KMS key ARN for envelope encryption
+
+# Fargate profiles (optional for serverless workloads)
+fargateProfiles:
+  - name: mcp-fargate
+    selectors:
+      - namespace: kube-system
+        labels:
+          k8s-app: aws-load-balancer-controller
+      - namespace: mcp-fargate
+    podExecutionRoleARN: ""  # Will be created automatically
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      Profile: "fargate"
+
+# Git repository configuration (for GitOps)
+gitops:
+  flux:
+    gitProvider: github
+    flags:
+      owner: ""  # Your GitHub username
+      repository: ""  # Your repository name
+      private: true
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 3
+    volumeSize: 30
+    volumeType: gp3
+    
+    # Private networking
+    privateNetworking: true
+    
+    # SSH access via SSM
+    ssh:
+      enableSSM: true
+    
+    # Labels
+    labels:
+      nodegroup-type: "managed"
+      workload: "mcp-server"
+    
+    # Tags
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      NodeGroup: "managed-workers"
+
+# Add-ons
+addons:
+  - name: vpc-cni
+    version: latest
+  
+  - name: coredns
+    version: latest
+    
+  - name: kube-proxy
+    version: latest
+    
+  - name: aws-ebs-csi-driver
+    version: latest
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7
+  - name: coredns
+    version: latest
+    
+  - name: kube-proxy
+    version: latest
+    
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7
+
+# Fargate profiles (optional for serverless workloads)
+fargateProfiles:
+  - name: mcp-fargate
+    selectors:
+      - namespace: kube-system
+        labels:
+          k8s-app: aws-load-balancer-controller
+      - namespace: mcp-fargate
+    
+    # Tags
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      Profile: "fargate"
+    
+    # Tags
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      NodeGroup: "managed-workers"
+    
+    # Update configuration
+    updateConfig:
+      maxUnavailable: 1
+
+# Add-ons
+addons:
+  - name: vpc-cni
+    version: latest
+    configurationValues: |-
+      env:
+        ENABLE_POD_ENI: "false"
+        ENABLE_PREFIX_DELEGATION: "false"
+        POD_SECURITY_GROUP_ENFORCING_MODE: "standard"
+  
+  - name: coredns
+    version: latest
+    
+  - name: kube-proxy
+    version: latest
+    
+  - name: aws-ebs-csi-driver
+    version: latest
+    wellKnownPolicies:
+      ebsCSIController: true
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enable: true
+    types: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7
+
+# Additional cluster configuration
+secretsEncryption:
+  keyARN: ""  # Optional: Provide KMS key ARN for envelope encryption
+
+# Fargate profiles (optional for serverless workloads)
+fargateProfiles:
+  - name: mcp-fargate
+    selectors:
+      - namespace: kube-system
+        labels:
+          k8s-app: aws-load-balancer-controller
+      - namespace: mcp-fargate
+    
+    # Fargate pod execution role
+    podExecutionRoleARN: ""  # Will be created automatically
+    
+    # Tags
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+      Profile: "fargate"
+
+# Git repository configuration (for GitOps)
+gitops:
+  flux:
+    gitProvider: github
+    flags:
+      owner: ""  # Your GitHub username
+      repository: ""  # Your repository name
+      private: true

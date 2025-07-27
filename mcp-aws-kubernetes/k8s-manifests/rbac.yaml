@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-server-sa
+  namespace: default
+  annotations:
+    # For EKS IRSA integration
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/mcp-server-role
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-server-cluster-role
+rules:
+  # Pod operations
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/status"]
+    verbs: ["get", "list", "delete"]
+  
+  # Namespace operations
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  
+  # Events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+  
+  # Nodes (read-only)
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  
+  # Deployment operations
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "patch", "update"]
+  
+  # ReplicaSet operations
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list"]
+  
+  # Service operations
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+  
+  # ConfigMap and Secret operations (limited)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-server-cluster-rolebinding
+subjects:
+  - kind: ServiceAccount
+    name: mcp-server-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: mcp-server-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+# Additional Role for namespace-specific operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mcp-server-namespace-role
+  namespace: default
+rules:
+  # Full pod management in default namespace
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec"]
+    verbs: ["*"]
+  
+  # Deployment management
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["*"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-server-namespace-rolebinding
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: mcp-server-sa
+    namespace: default
+roleRef:
+  kind: Role
+  name: mcp-server-namespace-role
+  apiGroup: rbac.authorization.k8s.io

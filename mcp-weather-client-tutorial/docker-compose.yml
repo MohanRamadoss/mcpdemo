@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # MCP Weather Server (STDIO mode)
+  weather-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-weather-server
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - DOCKER_CONTAINER=true
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    command: ["python", "/app/scripts/simple_server.py"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; print('Health check OK'); sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # MCP Client (interactive)
+  weather-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-weather-client
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-AIzaSyC2YmGx9-_yx9QzW3D0qCEgvV03U9zik9E}
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./logs:/app/logs
+    networks:
+      - mcp-network
+    depends_on:
+      weather-server:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    command: ["python", "-u", "advanced_client.py", "weather_server.py"]
+    profiles:
+      - client
+
+  # HTTP Server version (with manual implementation)
+  weather-http-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-weather-http
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: ["python", "/app/scripts/http_server.py"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - http
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: ["python", "/app/scripts/http_server.py"]
+    profiles:
+      - http
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
+    profiles:
+      - daemon
+
+  # HTTP Server version (optional)
+  weather-http-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-weather-http
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: ["python", "-c", "
+      import asyncio, logging;
+      from weather_server import mcp;
+      logging.basicConfig(level=logging.INFO);
+      logger = logging.getLogger(__name__);
+      logger.info('Starting HTTP server on port 8080...');
+      asyncio.run(mcp.run(transport='http', host='0.0.0.0', port=8080))
+    "]
+    profiles:
+      - http
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local

@@ -1,0 +1,67 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "K8s MCP Server",
+    "version": "1.0.0"
+  },
+  "paths": {},
+  "x-actions": [
+    {
+      "name": "list_pods",
+      "description": "List all pods in a specific namespace",
+      "parameters": {
+        "namespace": "string"
+      }
+    },
+    {
+      "name": "get_pod_logs",
+      "description": "Get logs from a specific pod in a namespace",
+      "parameters": {
+        "namespace": "string",
+        "pod_name": "string"
+      }
+    },
+    {
+      "name": "get_nodes",
+      "description": "List all nodes in the Kubernetes cluster",
+      "parameters": {}
+    },
+    {
+      "name": "get_namespaces",
+      "description": "List all namespaces in the Kubernetes cluster",
+      "parameters": {}
+    },
+    {
+      "name": "restart_deployment",
+      "description": "Restart a deployment by patching its annotation with a new timestamp",
+      "parameters": {
+        "namespace": "string",
+        "name": "string"
+      }
+    },
+    {
+      "name": "scale_deployment",
+      "description": "Scale a deployment to the specified number of replicas",
+      "parameters": {
+        "namespace": "string",
+        "name": "string",
+        "replicas": "integer"
+      }
+    },
+    {
+      "name": "get_events",
+      "description": "Get recent Kubernetes events in a given namespace",
+      "parameters": {
+        "namespace": "string"
+      }
+    },
+    {
+      "name": "delete_pod",
+      "description": "Delete a specific pod in a namespace",
+      "parameters": {
+        "namespace": "string",
+        "pod_name": "string"
+      }
+    }
+  ]
+}

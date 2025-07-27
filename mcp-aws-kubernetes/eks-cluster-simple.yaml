@@ -1,0 +1,57 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: mcp-k8s-cluster
+  region: us-east-1
+  version: "1.28"
+
+# IAM Configuration
+iam:
+  withOIDC: true
+
+# Managed node groups
+managedNodeGroups:
+  - name: mcp-workers
+    instanceTypes: 
+      - t3.medium
+    amiFamily: AmazonLinux2
+    desiredCapacity: 2
+    minSize: 1
+    maxSize: 3
+    volumeSize: 30
+    volumeType: gp3
+    privateNetworking: true
+    ssh:
+      enableSSM: true
+    labels:
+      nodegroup-type: "managed"
+      workload: "mcp-server"
+    tags:
+      Environment: "mcp-k8s"
+      Project: "AI-Kubernetes-MCP"
+    iam:
+      withAddonPolicies:
+        ebs: true
+        fsx: true
+        efs: true
+        awsLoadBalancerController: true
+        xRay: true
+        cloudWatch: true
+
+# Add-ons
+addons:
+  - name: vpc-cni
+    version: latest
+  - name: coredns
+    version: latest
+  - name: kube-proxy
+    version: latest
+  - name: aws-ebs-csi-driver
+    version: latest
+
+# CloudWatch logging
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+    logRetentionInDays: 7

@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-linux-agent
+  namespace: mcp-system
+  labels:
+    app: mcp-linux-agent
+    version: v2.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-linux-agent
+  template:
+    metadata:
+      labels:
+        app: mcp-linux-agent
+    spec:
+      serviceAccountName: mcp-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: mcp-linux-agent
+        image: mcp-linux-agent:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: PYTHONPATH
+          value: "/app"
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: MCP_ENVIRONMENT
+          value: "kubernetes"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mcp-secrets
+              key: google-api-key
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: host-proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: host-sys
+          mountPath: /host/sys
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        command: ["python3", "main.py", "--http"]
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: host-proc
+        hostPath:
+          path: /proc
+      - name: host-sys
+        hostPath:
+          path: /sys
+      nodeSelector:
+        kubernetes.io/os: linux
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-linux-service
+  namespace: mcp-system
+spec:
+  selector:
+    app: mcp-linux-agent
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-secrets
+  namespace: mcp-system
+type: Opaque
+data:
+  google-api-key: <base64-encoded-api-key>
