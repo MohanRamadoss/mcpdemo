@@ -52,6 +52,26 @@ class MCPCalculatorClient:
 
     async def process_query(self, query: str) -> str:
         """Process mathematical query using Gemini 2.5 Flash and available tools"""
+        # Handle help requests
+        if query.lower() in ['help', 'examples', 'what can i calculate?']:
+            return """🧮 SCIENTIFIC CALCULATOR HELP
+
+📋 AVAILABLE OPERATIONS:
+- Basic: Addition, Subtraction, Multiplication, Division
+- Advanced: Power, Square Root, Cube Root, Factorial
+- Trigonometry: Sin, Cos, Tan (in degrees)
+- Other: Logarithm, Remainder/Modulo
+
+💡 EXAMPLE QUERIES:
+- "What is 15 + 27?"
+- "Calculate the square root of 144"
+- "What is 2 to the power of 10?"
+- "Find the sine of 30 degrees"
+- "What is 7 factorial?"
+- "Divide 156 by 12"
+
+🎯 TIP: You can ask in natural language! I'll understand and perform the calculations for you."""
+
         response = await self.session.list_tools()
         available_tools = response.tools
         
@@ -178,63 +198,6 @@ Please provide your mathematical analysis now:"""
             
         except Exception as e:
             return f"⚠️ Error processing mathematical query: {str(e)}"
-
-    async def chat_loop(self):
-        """Run interactive calculator chat"""
-        print("\n🧮 Calculator MCP Client with Gemini 2.5 Flash Started!")
-        print("=" * 60)
-        print("💡 TIP: Ask mathematical questions like 'What is 15 + 27?'")
-        print("💡 TIP: Try 'Calculate the square root of 144'")
-        print("💡 TIP: Type 'quit' to exit")
-        print("=" * 60)
-
-        while True:
-            try:
-                query = input("\n🔢 Math Query: ").strip()
-
-                if query.lower() == 'quit':
-                    print("👋 Thanks for using the calculator client!")
-                    break
-
-                if not query:
-                    print("❓ Please enter a mathematical query.")
-                    continue
-
-                response = await self.process_query(query)
-                print("\n" + "="*60)
-                print(response)
-                print("="*60)
-
-            except KeyboardInterrupt:
-                print("\n\n👋 Goodbye!")
-                break
-            except Exception as e:
-                print(f"\n❌ Error: {str(e)}")
-
-    async def cleanup(self):
-        """Clean up resources"""
-        await self.exit_stack.aclose()
-
-async def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 advanced_calculator_client.py <path_to_calculator_server.py>")
-        print("Example: python3 advanced_calculator_client.py mcp_server.py")
-        sys.exit(1)
-
-    client = MCPCalculatorClient()
-    try:
-        await client.connect_to_server(sys.argv[1])
-        await client.chat_loop()
-    finally:
-        await client.cleanup()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-• "What is 7 factorial?"
-• "Divide 156 by 12"
-
-🎯 TIP: You can ask in natural language! I'll understand and perform the calculations for you.
-"""
 
     async def chat_loop(self):
         """Run an interactive chat loop"""
