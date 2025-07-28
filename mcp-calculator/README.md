@@ -364,6 +364,315 @@ This architecture ensures:
 
 This design ensures **loose coupling**, **high cohesion**, and **clear separation of concerns** for maintainable and extensible mathematical computing.
 
+## 🔗 Deep Dive: MCP Client-Server Communication
+
+### 🚀 How FastMCP Works
+
+#### **Server Side: `mcp_server.py`**
+```python
+# FastMCP Framework Initialization
+mcp = FastMCP(
+    "Scientific Calculator",                    # Server name
+    description="A scientific calculator providing mathematical operations",
+    version="1.0.0"
+)
+
+# Tool Registration via Decorators
+@mcp.tool()
+def add(a: float, b: float) -> float:
+    """Add two numbers"""
+    return float(a + b)
+```
+
+**🔧 FastMCP Architecture:**
+```
+FastMCP Server Process
+├── 📡 Transport Layer (STDIO/SSE)
+├── 🛠️ Tool Registry (@mcp.tool decorators)
+├── 📝 Schema Generator (automatic from function signatures)
+├── 🔍 Request Parser (JSON-RPC protocol)
+├── ⚡ Function Executor (direct Python calls)
+└── 📤 Response Serializer (JSON format)
+```
+
+#### **Client Side: `advanced_calculator_client.py`**
+```python
+# MCP Client Session Setup
+server_params = StdioServerParameters(
+    command="python3",                          # Execute server
+    args=[server_script_path],                 # Server file path
+    env=None                                   # Environment variables
+)
+
+# Transport and Session Management
+stdio_transport = await stdio_client(server_params)
+self.stdio, self.write = stdio_transport
+self.session = ClientSession(self.stdio, self.write)
+await self.session.initialize()
+```
+
+### 🔄 Communication Protocol Flow
+
+#### **1. Server Startup Process**
+```
+mcp_server.py Execution
+         ↓
+FastMCP Initialization
+         ↓
+Tool Registration Scan (@mcp.tool decorators)
+         ↓
+Schema Generation (function signatures → JSON schema)
+         ↓
+Transport Setup (STDIO for client communication)
+         ↓
+Ready for Requests (listening on stdin/stdout)
+```
+
+#### **2. Client Connection Process**
+```
+advanced_calculator_client.py
+         ↓
+StdioServerParameters Configuration
+         ↓
+Subprocess Launch (python3 mcp_server.py)
+         ↓
+STDIO Transport Establishment
+         ↓
+ClientSession Creation
+         ↓
+MCP Handshake (initialize())
+         ↓
+Tool Discovery (list_tools())
+```
+
+#### **3. Request-Response Cycle**
+```
+🟨 AI LAYER                    🟦 CLIENT                      🟩 SERVER
+     │                             │                             │
+     │ ① Generate JSON              │                             │
+     │   Tool Call                  │                             │
+     │                             │                             │
+     │ {"tool_call":               │                             │
+     │  {"name": "power",          │                             │
+     │   "arguments":              │                             │
+     │    {"a": 3, "b": 4}}}       │                             │
+     │                             │                             │
+     │ ②────────────────────────▶  │                             │
+     │                             │                             │
+     │                             │ ③ session.call_tool()       │
+     │                             │   ────────────────────────▶ │
+     │                             │                             │
+     │                             │   JSON-RPC Request:         │
+     │                             │   {                         │
+     │                             │     "method": "tools/call", │
+     │                             │     "params": {             │
+     │                             │       "name": "power",      │
+     │                             │       "arguments": {        │
+     │                             │         "a": 3, "b": 4      │
+     │                             │       }                     │
+     │                             │     }                       │
+     │                             │   }                         │
+     │                             │                             │
+     │                             │                             │ ④ FastMCP Processing
+     │                             │                             │   ├─ Request Parse
+     │                             │                             │   ├─ Tool Lookup
+     │                             │                             │   ├─ Parameter Validation
+     │                             │                             │   ├─ Function Execution
+     │                             │                             │   │   power(3, 4) = 81.0
+     │                             │                             │   └─ Response Format
+     │                             │                             │
+     │                             │   JSON-RPC Response:        │
+     │                             │   {                         │
+     │                             │     "content": [            │
+     │                             │       {                     │
+     │                             │         "type": "text",     │
+     │                             │         "text": "81.0"      │
+     │                             │       }                     │
+     │                             │     ]                       │
+     │                             │   }                         │
+     │                             │                             │
+     │                             │ ⑤ ◀────────────────────────  │
+     │                             │                             │
+     │ ⑥ ◀──────────────────────── │                             │
+     │   Raw Result: "81.0"        │                             │
+     │                             │                             │
+     │ ⑦ AI Enhancement            │                             │
+     │   "3 to the power of 4      │                             │
+     │    equals 81. This means    │                             │
+     │    3×3×3×3 = 81"            │                             │
+     │                             │                             │
+     │ ⑧ ────────────────────────▶ │                             │
+     │   Enhanced Response         │                             │
+```
+
+### 🧠 AI Integration Deep Dive
+
+#### **Gemini 2.5 Flash Role in Communication**
+
+```python
+# AI System Prompt Construction
+system_prompt = f"""You are an advanced mathematical assistant with access to these calculator tools:
+
+{tools_description}
+
+When you need to use a tool, respond with ONLY a clean JSON object:
+{{"tool_call": {{"name": "tool_name", "arguments": {{"param1": value1}}}}}}
+"""
+
+# AI Configuration for Mathematical Precision
+generation_config = {
+    "temperature": 0.1,          # Low temperature for accuracy
+    "top_p": 0.9,               # Focused sampling
+    "top_k": 50,                # Limited token selection
+    "max_output_tokens": 1500,   # Response length limit
+    "response_mime_type": "text/plain"
+}
+```
+
+#### **AI Processing Pipeline**
+```
+User Query: "What is 3 to the power of 4?"
+         ↓
+🧠 Gemini 2.5 Flash Analysis
+├── ① Natural Language Understanding
+│   ├─ Parse: "3 to the power of 4"
+│   ├─ Identify: Mathematical operation
+│   └─ Extract: base=3, exponent=4
+│
+├── ② Tool Selection Logic
+│   ├─ Available tools scan
+│   ├─ Match operation: "power"
+│   └─ Parameter mapping: a=3, b=4
+│
+├── ③ JSON Generation
+│   ├─ Structure validation
+│   ├─ Parameter type checking
+│   └─ Format compliance
+│
+└── ④ Output: {"tool_call": {"name": "power", "arguments": {"a": 3, "b": 4}}}
+```
+
+### 📡 STDIO Transport Protocol
+
+#### **How STDIO Communication Works**
+```
+Client Process                    Server Process
+┌─────────────┐                  ┌─────────────┐
+│             │                  │             │
+│ Python      │    stdin/stdout  │ Python      │
+│ Client      │ ◀──────────────▶ │ Server      │
+│ Session     │                  │ FastMCP     │
+│             │                  │             │
+└─────────────┘                  └─────────────┘
+      │                                │
+      │ JSON-RPC Messages              │
+      │ ───────────────────────────▶   │
+      │                                │
+      │ ◀─────────────────────────────  │
+      │ JSON-RPC Responses             │
+```
+
+**Message Format:**
+```json
+// Client → Server (Tool Call)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "power",
+    "arguments": {
+      "a": 3,
+      "b": 4
+    }
+  }
+}
+
+// Server → Client (Result)
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "81.0"
+      }
+    ]
+  }
+}
+```
+
+### 🔧 FastMCP Tool Registry Mechanism
+
+#### **Decorator Magic: `@mcp.tool()`**
+```python
+@mcp.tool()
+def power(a: float, b: float) -> float:
+    """Power of two numbers"""
+    try:
+        return float(a ** b)
+    except OverflowError:
+        raise ValueError("Result too large")
+```
+
+**What Happens Behind the Scenes:**
+```
+1. Decorator Registration
+   ├── Function signature analysis
+   ├── Parameter type extraction
+   ├── Docstring processing
+   └── Tool schema generation
+
+2. Schema Creation
+   {
+     "name": "power",
+     "description": "Power of two numbers",
+     "inputSchema": {
+       "type": "object",
+       "properties": {
+         "a": {"type": "number"},
+         "b": {"type": "number"}
+       },
+       "required": ["a", "b"]
+     }
+   }
+
+3. Runtime Registration
+   ├── Tool registry update
+   ├── Function pointer storage
+   └── Ready for execution
+```
+
+### 🚦 Error Handling Flow
+
+#### **Multi-Layer Error Management**
+```
+🟨 AI Layer Errors              🟦 Client Errors              🟩 Server Errors
+├── JSON parsing failures       ├── Connection issues          ├── Mathematical errors
+├── Tool selection errors       ├── Transport failures         ├── Parameter validation
+├── Parameter validation        ├── Session management         ├── Function execution
+└── Response generation         └── Timeout handling           └── Result serialization
+         │                              │                              │
+         ▼                              ▼                              ▼
+    Graceful degradation     →    Retry mechanisms      →    Error propagation
+         │                              │                              │
+         ▼                              ▼                              ▼
+    User-friendly messages   →    Fallback strategies   →    JSON error responses
+```
+
+### 🎯 Key Communication Benefits
+
+| Layer | Benefit | Implementation |
+|-------|---------|----------------|
+| **AI Layer** | Natural Language → Structured Calls | Gemini 2.5 Flash with system prompts |
+| **Client Layer** | Session Management + Error Handling | MCP ClientSession with async/await |
+| **Transport** | Reliable Process Communication | STDIO with JSON-RPC protocol |
+| **Server Layer** | Automatic Tool Discovery | FastMCP decorators + schema generation |
+| **Math Engine** | Precise Calculations | Python math library with error handling |
+
+This architecture enables **seamless natural language mathematical computing** through sophisticated AI orchestration and robust MCP protocol communication! 🧮✨
+
 ## 🧮 Available Mathematical Operations
 
 ### Basic Operations
