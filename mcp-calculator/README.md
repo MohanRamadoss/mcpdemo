@@ -27,6 +27,139 @@ pip install -r requirements.txt
 python3 advanced_calculator_client.py mcp_server.py
 ```
 
+## 🏗️ Architecture Flow
+
+### System Overview
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   User Input    │    │  Gemini 2.5      │    │  MCP Calculator │
+│  (Natural Lang) │───▶│  Flash AI        │───▶│    Server       │
+│                 │    │  (Tool Parser)   │    │  (Math Engine)  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+         ▲                        │                       │
+         │                        ▼                       ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Formatted      │    │   JSON Tool      │    │  Mathematical   │
+│   Response      │◀───│   Call Request   │◀───│   Calculation   │
+│                 │    │                  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### Flow Breakdown
+
+#### 1. **User Input Processing**
+- User enters natural language query: *"What is 3 to the power of 4?"*
+- Client captures input and prepares for AI processing
+
+#### 2. **AI Intent Recognition** 
+- **Gemini 2.5 Flash** analyzes the query
+- Identifies mathematical operation: `power(3, 4)`
+- Generates structured JSON tool call:
+  ```json
+  {"tool_call": {"name": "power", "arguments": {"a": 3, "b": 4}}}
+  ```
+
+#### 3. **MCP Server Communication**
+- Client sends tool call to **MCP Calculator Server**
+- Server validates parameters and executes calculation
+- Returns result: `81.0`
+
+#### 4. **Response Enhancement**
+- **Gemini 2.5 Flash** receives calculation result
+- Generates educational, formatted response
+- Includes mathematical explanation and context
+
+#### 5. **User Output**
+- Client displays comprehensive result:
+  ```
+  🧮 Mathematical Result:
+  
+  The calculation 3 to the power of 4 equals 81.
+  This means 3 × 3 × 3 × 3 = 81.
+  ```
+
+### Component Details
+
+#### **Advanced Calculator Client** (`advanced_calculator_client.py`)
+- **Role**: Orchestrator and AI Interface
+- **Responsibilities**:
+  - User interaction management
+  - Gemini 2.5 Flash integration
+  - MCP protocol communication
+  - Response formatting and display
+- **Key Features**:
+  - Natural language processing
+  - JSON tool call parsing
+  - Error handling and validation
+  - Interactive chat loop
+
+#### **MCP Calculator Server** (`mcp_server.py`)
+- **Role**: Mathematical Engine
+- **Responsibilities**:
+  - Mathematical function implementations
+  - Parameter validation
+  - Result computation
+  - Error handling (division by zero, etc.)
+- **Available Tools**: 13 mathematical functions
+  - Basic: `add`, `subtract`, `multiply`, `divide`
+  - Advanced: `power`, `sqrt`, `cbrt`, `factorial`
+  - Trigonometric: `sin`, `cos`, `tan`
+  - Other: `log`, `remainder`
+
+#### **Gemini 2.5 Flash AI**
+- **Role**: Natural Language Processor
+- **Responsibilities**:
+  - Query interpretation
+  - Tool selection and parameter extraction
+  - Response generation and formatting
+  - Mathematical explanation
+- **Configuration**:
+  - Temperature: 0.1 (high precision)
+  - Max tokens: 1500
+  - Response format: Plain text
+
+### Data Flow Example
+
+```
+Input: "What is the square root of 144?"
+   ↓
+Gemini Analysis: Identifies sqrt operation
+   ↓
+JSON Generation: {"tool_call": {"name": "sqrt", "arguments": {"a": 144}}}
+   ↓
+MCP Server Call: sqrt(144)
+   ↓
+Mathematical Result: 12.0
+   ↓
+AI Enhancement: "The square root of 144 is 12. This means 12 × 12 = 144."
+   ↓
+Formatted Output: Display with emoji and formatting
+```
+
+### Error Handling Flow
+
+```
+Invalid Input → AI Detection → Error Response
+     ↓              ↓              ↓
+Math Error   → Server Check → Graceful Message
+     ↓              ↓              ↓
+Network Issue → Connection → Retry/Fallback
+```
+
+### Integration Points
+
+1. **MCP Protocol**: Standardized communication between client and server
+2. **Google AI API**: Gemini 2.5 Flash model integration
+3. **Python Math Library**: Core mathematical operations
+4. **Environment Configuration**: API key and settings management
+
+This architecture ensures:
+- ✅ **Separation of Concerns**: AI, Math, and UI are separate
+- ✅ **Scalability**: Easy to add new mathematical functions
+- ✅ **Reliability**: Error handling at each layer
+- ✅ **Maintainability**: Clear component boundaries
+- ✅ **Extensibility**: Can integrate with other MCP servers
+
 ## 🧮 Available Mathematical Operations
 
 ### Basic Operations
