@@ -160,6 +160,210 @@ This architecture ensures:
 - ✅ **Maintainability**: Clear component boundaries
 - ✅ **Extensibility**: Can integrate with other MCP servers
 
+## 📊 Professional Flow Diagrams
+
+### 🔄 MCP Client-Server Communication Flow
+
+```
+🟦 CLIENT SIDE                    🟩 SERVER SIDE                    🟨 AI LAYER
+┌─────────────────┐              ┌─────────────────┐              ┌─────────────────┐
+│                 │              │                 │              │                 │
+│  User Interface │              │  MCP Server     │              │  Gemini 2.5     │
+│                 │              │  (FastMCP)      │              │  Flash AI       │
+│      INPUT      │              │                 │              │                 │
+└─────────────────┘              └─────────────────┘              └─────────────────┘
+         │                                │                                │
+         │ ①                             │                                │
+         ▼                                │                                │
+┌─────────────────┐                      │                                │
+│  Query Capture  │                      │                                │
+│ "3 to power 4"  │                      │                                │
+└─────────────────┘                      │                                │
+         │                                │                                │
+         │ ②                             │                                │
+         ▼                                │                        ③      │
+┌─────────────────┐              ┌─────────────────┐              ┌─────────────────┐
+│   AI Request    │─────────────▶│                 │─────────────▶│   NLP Analysis  │
+│   Formation     │              │                 │              │                 │
+└─────────────────┘              │                 │              │ Intent:power(a,b)│
+         ▲                        │                 │              └─────────────────┘
+         │                        │                 │                        │
+         │ ⑧                      │                 │                        │ ④
+         │                        │                 │                        ▼
+┌─────────────────┐              │                 │              ┌─────────────────┐
+│ Response Format │              │                 │              │ JSON Generator  │
+│   & Display     │              │                 │              │ {"tool_call":   │
+└─────────────────┘              │                 │              │  {"name":"power"│
+         ▲                        │                 │              │   "args":{...}}}│
+         │                        │                 │              └─────────────────┘
+         │ ⑦                      │                 │                        │
+         │                        │                 │                        │ ⑤
+┌─────────────────┐              │                 │              ┌─────────────────┐
+│ Final Response  │◀─────────────│                 │◀─────────────│ JSON Tool Call  │
+│   Generation    │              │                 │              │   Validation    │
+└─────────────────┘              │                 │              └─────────────────┘
+         ▲                        │                 │                        │
+         │                        │                 │                        │ ⑥
+         │                        │                 │                        ▼
+         │                        │  Tool Executor  │              ┌─────────────────┐
+         │                        │                 │              │   MCP Client    │
+         │                        │   power(3,4)    │              │  Session.call   │
+         │                        │      ↓          │              │    _tool()      │
+         │                        │   Result: 81    │              └─────────────────┘
+         │                        │                 │                        │
+         │                        └─────────────────┘                        │
+         │                                ▲                                   │
+         │                                │                                   │
+         └────────────────────────────────┼───────────────────────────────────┘
+                                          │
+                                    📊 Mathematical
+                                       Engine
+```
+
+### 🔧 Detailed Component Flow
+
+#### 🟦 **CLIENT RESPONSIBILITIES**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLIENT OPERATIONS                        │
+├─────────────────────────────────────────────────────────────────┤
+│ 🎯 USER INTERACTION                                             │
+│   ├── Input Collection (natural language)                      │
+│   ├── Command Parsing (quit, help, calculations)               │
+│   └── Response Display (formatted output)                      │
+│                                                                 │
+│ 🤖 AI INTEGRATION                                               │
+│   ├── Gemini 2.5 Flash Configuration                          │
+│   ├── Prompt Engineering (system prompts)                      │
+│   ├── Response Processing (JSON extraction)                    │
+│   └── Error Handling (parsing failures)                        │
+│                                                                 │
+│ 🔗 MCP COMMUNICATION                                            │
+│   ├── Server Connection (STDIO transport)                      │
+│   ├── Session Management (initialization)                      │
+│   ├── Tool Discovery (list_tools)                             │
+│   └── Tool Execution (call_tool)                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 🟩 **SERVER RESPONSIBILITIES**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                       SERVER OPERATIONS                         │
+├─────────────────────────────────────────────────────────────────┤
+│ 🧮 MATHEMATICAL ENGINE                                          │
+│   ├── Function Registry (13 mathematical operations)           │
+│   ├── Parameter Validation (type checking)                     │
+│   ├── Calculation Execution (math operations)                  │
+│   └── Result Formatting (float/int conversion)                 │
+│                                                                 │
+│ 🛡️ ERROR HANDLING                                              │
+│   ├── Division by Zero Protection                              │
+│   ├── Domain Validation (sqrt, log constraints)               │
+│   ├── Overflow Detection (large numbers)                       │
+│   └── Type Safety (integer vs float)                          │
+│                                                                 │
+│ 📡 MCP PROTOCOL                                                 │
+│   ├── Tool Registration (@mcp.tool decorators)                │
+│   ├── Request Processing (FastMCP framework)                   │
+│   ├── Response Serialization (JSON format)                    │
+│   └── Transport Management (STDIO/SSE)                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### 🟨 **AI MANAGEMENT FLOW**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      AI ORCHESTRATION                          │
+├─────────────────────────────────────────────────────────────────┤
+│ 🧠 NATURAL LANGUAGE PROCESSING                                 │
+│   ├── Query Analysis ("square root of 144")                   │
+│   ├── Intent Recognition (mathematical operation)              │
+│   ├── Parameter Extraction (numbers and operations)           │
+│   └── Context Understanding (mathematical concepts)            │
+│                                                                 │
+│ 🔧 TOOL ORCHESTRATION                                          │
+│   ├── Tool Selection (choosing correct function)              │
+│   ├── JSON Generation (structured tool calls)                 │
+│   ├── Parameter Mapping (natural language → function args)    │
+│   └── Validation Logic (parameter constraints)                │
+│                                                                 │
+│ 📝 RESPONSE ENHANCEMENT                                         │
+│   ├── Result Interpretation (mathematical meaning)            │
+│   ├── Educational Content (step-by-step explanations)         │
+│   ├── Formatting & Styling (emojis, structure)               │
+│   └── Error Communication (user-friendly messages)           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 🔄 Step-by-Step Communication Protocol
+
+```
+    CLIENT                          AI LAYER                        SERVER
+      │                               │                               │
+      │ ①─────────────────────────────▶│                               │
+      │   "What is 3^4?"               │                               │
+      │                               │                               │
+      │                               │ ② Analyze Query               │
+      │                               │    ↓                          │
+      │                               │   Identify: power(3,4)        │
+      │                               │    ↓                          │
+      │                               │ ③ Generate JSON               │
+      │                               │   {"tool_call":               │
+      │                               │    {"name":"power",           │
+      │                               │     "args":{"a":3,"b":4}}}    │
+      │                               │                               │
+      │ ④◀────────────────────────────│                               │
+      │   JSON Tool Call              │                               │
+      │                               │                               │
+      │ ⑤─────────────────────────────────────────────────────────────▶│
+      │   session.call_tool("power", {"a":3, "b":4})                 │
+      │                               │                               │
+      │                               │                               │ ⑥ Execute
+      │                               │                               │   power(3,4)
+      │                               │                               │   ↓
+      │                               │                               │   Result: 81.0
+      │                               │                               │
+      │ ⑦◀────────────────────────────────────────────────────────────│
+      │   Return: 81.0                │                               │
+      │                               │                               │
+      │ ⑧─────────────────────────────▶│                               │
+      │   Raw Result + Context        │                               │
+      │                               │                               │
+      │                               │ ⑨ Enhance Response            │
+      │                               │   "3 to the power of 4        │
+      │                               │    equals 81. This means      │
+      │                               │    3×3×3×3 = 81"              │
+      │                               │                               │
+      │ ⑩◀────────────────────────────│                               │
+      │   Enhanced Response           │                               │
+      │                               │                               │
+      │ ⑪ Display to User             │                               │
+      │   🧮 Mathematical Result:      │                               │
+      │   3^4 = 81                    │                               │
+```
+
+### 🎨 Color Legend
+
+- 🟦 **BLUE**: Client-side operations (User Interface, Session Management)
+- 🟩 **GREEN**: Server-side operations (Mathematical Engine, Tool Registry)
+- 🟨 **YELLOW**: AI Layer operations (NLP, Tool Orchestration, Response Generation)
+- 🔄 **ARROWS**: Data flow direction and process sequence
+- 📊 **SYMBOLS**: 
+  - ① ② ③ Sequential steps
+  - ▶ ◀ Data transmission direction
+  - ↓ ↑ Internal processing flow
+
+### 🏗️ Architecture Benefits
+
+| Component | Responsibility | Benefits |
+|-----------|---------------|----------|
+| **Client** | UI + AI Integration | • Smooth user experience<br>• Intelligent query processing<br>• Error handling |
+| **AI Layer** | Natural Language Processing | • Human-like interaction<br>• Context understanding<br>• Educational responses |
+| **Server** | Mathematical Computing | • Precise calculations<br>• Function modularity<br>• Scalable operations |
+
+This design ensures **loose coupling**, **high cohesion**, and **clear separation of concerns** for maintainable and extensible mathematical computing.
+
 ## 🧮 Available Mathematical Operations
 
 ### Basic Operations
