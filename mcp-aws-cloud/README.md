@@ -36,6 +36,9 @@ graph TB
         CW[📊 CloudWatch]
         COSTS[💰 Cost Explorer]
         IAM[🔐 IAM/STS]
+        RDS[🗄️ RDS Databases]
+        ASG[⚖️ Auto Scaling]
+        ELB[🔄 Load Balancers]
     end
     
     USER --> CLI
@@ -51,6 +54,9 @@ graph TB
     TOOLS --> CW
     TOOLS --> COSTS
     TOOLS --> IAM
+    TOOLS --> RDS
+    TOOLS --> ASG
+    TOOLS --> ELB
     
     style USER fill:#e1f5fe
     style GEMINI fill:#f3e5f5
@@ -87,11 +93,16 @@ sequenceDiagram
 ## ✨ Features
 
 ### 🔧 AWS Services Supported
-- **EC2 Management**: List, start, stop instances
-- **S3 Storage**: List buckets, browse objects
-- **Lambda Functions**: List functions, invoke them
+- **EC2 Management**: List, start, stop instances across all regions
+- **S3 Storage**: List buckets, browse objects, create buckets, upload/delete files
+- **Lambda Functions**: List functions, invoke them, get logs
+- **IAM Security**: ✨ NEW! List users, roles, policies, MFA status
+- **RDS Databases**: ✨ NEW! List instances, performance metrics, status monitoring
+- **Auto Scaling**: ✨ NEW! List ASGs, update capacity, monitor health
+- **Load Balancers**: ✨ NEW! List ALB/NLB, target health, status monitoring
 - **CloudWatch Monitoring**: Get metrics and performance data
-- **Cost Analysis**: Track AWS spending
+- **VPC Networking**: List VPCs, security groups, network topology
+- **Cost Analysis**: Track AWS spending and service costs
 - **Health Monitoring**: Server status and connectivity checks
 
 ### 🤖 AI-Powered Interface
@@ -173,16 +184,50 @@ classDiagram
         +get_aws_costs(service, days)
     }
     
+    class IAMTools {
+        +list_iam_users()
+        +list_iam_roles()
+        +get_user_policies(username)
+    }
+    
+    class RDSTools {
+        +list_rds_instances(region)
+        +get_rds_performance_insights(db_instance_id, region, hours)
+    }
+    
+    class ASGTools {
+        +list_auto_scaling_groups(region)
+        +update_auto_scaling_capacity(asg_name, desired_capacity, region)
+    }
+    
+    class ELBTools {
+        +list_load_balancers(region)
+        +get_load_balancer_health(lb_arn, region)
+    }
+    
+    class VPCTools {
+        +list_vpcs(region)
+        +list_security_groups(vpc_id, region)
+    }
+    
     MCPServer --> AWSSession
     MCPServer --> EC2Tools
     MCPServer --> S3Tools
     MCPServer --> LambdaTools
     MCPServer --> MonitoringTools
+    MCPServer --> IAMTools
+    MCPServer --> RDSTools
+    MCPServer --> ASGTools
+    MCPServer --> ELBTools
     
     EC2Tools --> AWSSession
     S3Tools --> AWSSession
     LambdaTools --> AWSSession
     MonitoringTools --> AWSSession
+    IAMTools --> AWSSession
+    RDSTools --> AWSSession
+    ASGTools --> AWSSession
+    ELBTools --> AWSSession
 ```
 
 ## 🚀 Quick Start
@@ -262,9 +307,12 @@ Once the client is running, you can use natural language queries:
 ### EC2 Management
 ```
 ☁️ AWS Query: list ec2 instances
+☁️ AWS Query: list all ec2 instances across regions
+☁️ AWS Query: get ec2 instances by region
 ☁️ AWS Query: start instance i-1234567890abcdef0
 ☁️ AWS Query: stop instance i-0987654321fedcba0
 ☁️ AWS Query: show me all running instances in us-west-2
+☁️ AWS Query: get details for instance i-1234567890abcdef0
 ```
 
 ### S3 Storage
@@ -272,20 +320,73 @@ Once the client is running, you can use natural language queries:
 ☁️ AWS Query: list all s3 buckets
 ☁️ AWS Query: show objects in bucket my-data-bucket
 ☁️ AWS Query: list files in bucket logs-bucket with prefix 2024/
+☁️ AWS Query: create s3 bucket my-new-bucket in us-west-2
+☁️ AWS Query: upload content to bucket/key
+☁️ AWS Query: delete object from s3 bucket
 ```
 
 ### Lambda Functions
 ```
 ☁️ AWS Query: list lambda functions
+☁️ AWS Query: list lambda functions in eu-west-1
 ☁️ AWS Query: invoke function my-lambda-function
-☁️ AWS Query: show me lambda functions in eu-west-1
+☁️ AWS Query: invoke function my-lambda with payload {"test": "data"}
+☁️ AWS Query: get lambda logs for my-function
+☁️ AWS Query: show recent logs for lambda function
+```
+
+### IAM Security ✨ NEW!
+```
+☁️ AWS Query: list all iam users
+☁️ AWS Query: list all iam roles
+☁️ AWS Query: get policies for user john-doe
+☁️ AWS Query: show users without MFA enabled
+☁️ AWS Query: list iam users with access keys
+☁️ AWS Query: show iam security status
+```
+
+### RDS Databases ✨ NEW!
+```
+☁️ AWS Query: list rds instances
+☁️ AWS Query: list rds databases in us-west-2
+☁️ AWS Query: get rds performance for my-db-instance
+☁️ AWS Query: show database performance metrics
+☁️ AWS Query: get rds performance insights for last 2 hours
+```
+
+### Auto Scaling ✨ NEW!
+```
+☁️ AWS Query: list auto scaling groups
+☁️ AWS Query: list asg in us-east-1
+☁️ AWS Query: update asg capacity to 5 instances
+☁️ AWS Query: scale up my-web-asg to 10 instances
+☁️ AWS Query: show auto scaling group health
+```
+
+### Load Balancers ✨ NEW!
+```
+☁️ AWS Query: list load balancers
+☁️ AWS Query: list alb and nlb in region
+☁️ AWS Query: get load balancer health status
+☁️ AWS Query: show target health for load balancer
+☁️ AWS Query: check health of my-web-alb
+```
+
+### VPC & Networking
+```
+☁️ AWS Query: list vpcs
+☁️ AWS Query: list vpcs in us-west-2
+☁️ AWS Query: show security groups for vpc-12345
+☁️ AWS Query: list security groups
 ```
 
 ### Monitoring & Costs
 ```
 ☁️ AWS Query: get cpu metrics for ec2 in the last 2 hours
+☁️ AWS Query: get cloudwatch metrics for namespace AWS/EC2
 ☁️ AWS Query: show aws costs for the last 7 days
-☁️ AWS Query: health check
+☁️ AWS Query: what's my aws spend this week?
+☁️ AWS Query: show top cost drivers this month
 ```
 
 ### Help & Information
@@ -293,6 +394,7 @@ Once the client is running, you can use natural language queries:
 ☁️ AWS Query: help
 ☁️ AWS Query: what can you do
 ☁️ AWS Query: show me example queries
+☁️ AWS Query: health check
 ```
 
 ## 🏗️ Infrastructure Deployment (Optional)
@@ -485,12 +587,16 @@ When AWS credentials aren't available, the server runs in demo mode:
 ### AWS Permissions
 
 The MCP server requires these AWS permissions:
-- **EC2**: `DescribeInstances`, `StartInstances`, `StopInstances`
-- **S3**: `ListAllMyBuckets`, `ListBucket`, `GetObject`
-- **Lambda**: `ListFunctions`, `InvokeFunction`
-- **CloudWatch**: `GetMetricStatistics`, `ListMetrics`
-- **Cost Explorer**: `GetCostAndUsage`
-- **STS**: `GetCallerIdentity`
+- **EC2**: `ec2:Describe*`, `ec2:Start*`, `ec2:Stop*`
+- **S3**: `s3:List*`, `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, `s3:CreateBucket`
+- **Lambda**: `lambda:List*`, `lambda:InvokeFunction`
+- **IAM**: ✨ `iam:List*`, `iam:Get*`, `iam:ListMFADevices`, `iam:ListAccessKeys`
+- **RDS**: ✨ `rds:Describe*`
+- **Auto Scaling**: ✨ `autoscaling:Describe*`, `autoscaling:SetDesiredCapacity`
+- **ELB**: ✨ `elasticloadbalancing:Describe*`
+- **CloudWatch**: `cloudwatch:GetMetricStatistics`, `logs:FilterLogEvents`
+- **Cost Explorer**: `ce:GetCostAndUsage`
+- **STS**: `sts:GetCallerIdentity`
 
 ### Best Practices
 
@@ -507,107 +613,243 @@ The MCP server requires these AWS permissions:
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `health_check` | Server health status | None |
-| `list_ec2_instances` | List EC2 instances | `region` (optional) |
+| **EC2 Management** |
+| `list_ec2_instances` | List EC2 instances in region | `region` (optional) |
+| `list_all_ec2_instances` | ✨ List instances across ALL regions | None |
+| `get_ec2_instances_by_region` | ✨ Regional summary of instances | None |
+| `get_instance_details` | ✨ Detailed instance information | `instance_id`, `region` (optional) |
 | `start_ec2_instance` | Start an instance | `instance_id`, `region` (optional) |
 | `stop_ec2_instance` | Stop an instance | `instance_id`, `region` (optional) |
-| `list_s3_buckets` | List S3 buckets | None |
+| **S3 Management** |
+| `list_s3_buckets` | List S3 buckets with details | None |
 | `get_s3_bucket_objects` | List bucket objects | `bucket_name`, `prefix`, `max_keys` |
+| `create_s3_bucket` | Create new S3 bucket | `bucket_name`, `region` |
+| `upload_s3_object` | Upload content to S3 | `bucket_name`, `key`, `content` |
+| `delete_s3_object` | Delete S3 object | `bucket_name`, `key` |
+| **Lambda Management** |
 | `list_lambda_functions` | List Lambda functions | `region` (optional) |
+| `invoke_lambda_function` | Invoke Lambda function | `function_name`, `payload`, `region` |
+| `get_lambda_logs` | Get function logs | `function_name`, `region`, `hours` |
+| **IAM Security** ✨ NEW! |
+| `list_iam_users` | List IAM users with security details | None |
+| `list_iam_roles` | List IAM roles | None |
+| `get_user_policies` | Get user policies | `username` |
+| **RDS Databases** ✨ NEW! |
+| `list_rds_instances` | List RDS instances | `region` (optional) |
+| `get_rds_performance_insights` | Get RDS performance metrics | `db_instance_id`, `region`, `hours` |
+| **Auto Scaling** ✨ NEW! |
+| `list_auto_scaling_groups` | List Auto Scaling Groups | `region` (optional) |
+| `update_auto_scaling_capacity` | Update ASG capacity | `asg_name`, `desired_capacity`, `region` |
+| **Load Balancers** ✨ NEW! |
+| `list_load_balancers` | List ALB/NLB load balancers | `region` (optional) |
+| `get_load_balancer_health` | Get target health status | `lb_arn`, `region` |
+| **Networking** |
+| `list_vpcs` | List VPCs in region | `region` (optional) |
+| `list_security_groups` | List security groups | `vpc_id`, `region` |
+| **Monitoring & Costs** |
 | `get_cloudwatch_metrics` | Get CloudWatch metrics | `metric_name`, `namespace`, `region`, `hours` |
-| `get_aws_help` | Get help information | None |
-
-### Tool Execution Flow
-
-```mermaid
-stateDiagram-v2
-    [*] --> ToolCall
-    ToolCall --> ValidateParams
-    ValidateParams --> CheckAWSCredentials
-    
-    CheckAWSCredentials --> ExecuteReal: AWS Available
-    CheckAWSCredentials --> ExecuteDemo: AWS Not Available
-    
-    ExecuteReal --> AWSAPICall
-    AWSAPICall --> ProcessResponse
-    
-    ExecuteDemo --> GenerateDemoData
-    GenerateDemoData --> ProcessResponse
-    
-    ProcessResponse --> FormatOutput
-    FormatOutput --> ReturnResult
-    ReturnResult --> [*]
-    
-    ValidateParams --> ErrorResponse: Invalid Parameters
-    AWSAPICall --> ErrorResponse: API Error
-    ErrorResponse --> [*]
-```
+| `get_aws_cost_and_usage` | Get cost and usage data | `days` |
+| **Help System** |
+| `get_aws_help` | Get comprehensive help | None |
 
 ## 🚀 Advanced Features
 
-### Error Handling Strategy
+### Complete AWS Service Coverage
 
 ```mermaid
-flowchart TD
-    START[🔧 Tool Execution] --> CHECK{☁️ AWS Available?}
+graph TB
+    subgraph "Compute Services"
+        EC2[🖥️ EC2 Instances<br/>✅ Full Management]
+        ASG[⚖️ Auto Scaling<br/>✅ Capacity Management]
+        LAMBDA[⚡ Lambda<br/>✅ Invoke & Monitor]
+    end
     
-    CHECK -->|Yes| REAL[📡 Real AWS Call]
-    CHECK -->|No| DEMO[🎭 Demo Mode]
+    subgraph "Storage Services"
+        S3[🪣 S3 Buckets<br/>✅ Full CRUD Operations]
+    end
     
-    REAL --> TRYCALL{🔄 Try AWS API}
-    TRYCALL -->|Success| SUCCESS[✅ Return Data]
-    TRYCALL -->|Auth Error| AUTHFAIL[🔐 Credentials Issue]
-    TRYCALL -->|Permission Error| PERMFAIL[🚫 Permission Denied]
-    TRYCALL -->|Network Error| NETFAIL[🌐 Network Issue]
-    TRYCALL -->|Other Error| OTHERFAIL[❌ General Error]
+    subgraph "Database Services"
+        RDS[🗄️ RDS<br/>✅ Monitor & Insights]
+    end
     
-    DEMO --> DEMODATA[🎭 Generate Demo Data]
-    DEMODATA --> DEMOSUCCESS[✅ Return Demo Data]
+    subgraph "Networking Services"
+        VPC[🌐 VPC<br/>✅ List & Inspect]
+        ELB[🔄 Load Balancers<br/>✅ Health Monitoring]
+        SG[🔒 Security Groups<br/>✅ List & Details]
+    end
     
-    AUTHFAIL --> FALLBACK[⬇️ Fall Back to Demo]
-    PERMFAIL --> FALLBACK
-    NETFAIL --> FALLBACK
-    OTHERFAIL --> FALLBACK
+    subgraph "Security Services"
+        IAM[🔐 IAM<br/>✅ Users, Roles, Policies]
+        MFA[🛡️ MFA Status<br/>✅ Security Audit]
+    end
     
-    FALLBACK --> DEMO
+    subgraph "Monitoring Services"
+        CW[📊 CloudWatch<br/>✅ Metrics & Logs]
+        COST[💰 Cost Explorer<br/>✅ Spend Analysis]
+    end
     
-    SUCCESS --> END[📊 Formatted Response]
-    DEMOSUCCESS --> END
-    END --> RETURN[👤 User Response]
+    style EC2 fill:#e8f5e8
+    style ASG fill:#e8f5e8
+    style RDS fill:#e8f5e8
+    style ELB fill:#e8f5e8
+    style IAM fill:#e8f5e8
+    style S3 fill:#e3f2fd
+    style VPC fill:#fff3e0
+    style CW fill:#f3e5f5
+```
+
+### Enhanced Query Processing
+
+The system now supports complex multi-service queries:
+
+```
+☁️ AWS Query: "Show me a complete infrastructure overview"
+→ Executes: EC2, RDS, S3, Load Balancers, Auto Scaling Groups
+
+☁️ AWS Query: "Find all resources without proper tagging"
+→ Analyzes: EC2 instances, S3 buckets, RDS instances for missing tags
+
+☁️ AWS Query: "Security audit - show users without MFA"
+→ Executes: IAM user analysis with MFA status check
+
+☁️ AWS Query: "Performance overview of my databases"
+→ Executes: RDS performance metrics across all regions
+```
+
+## 📈 NEW FEATURES IN v2.0
+
+### ✨ IAM Security Management
+- **User Management**: List all IAM users with creation dates and paths
+- **MFA Status**: Check which users have MFA enabled for security compliance
+- **Access Key Monitoring**: Track number of access keys per user
+- **Role Management**: List and analyze IAM roles and their configurations
+- **Policy Analysis**: Get detailed policy information for any user
+
+### ✨ RDS Database Management
+- **Database Discovery**: List all RDS instances across regions
+- **Performance Insights**: Get real-time CPU, connection, and latency metrics
+- **Configuration Details**: Instance class, engine version, storage details
+- **Availability Monitoring**: Multi-AZ status and backup configurations
+
+### ✨ Auto Scaling Management
+- **ASG Discovery**: List all Auto Scaling Groups with detailed configurations
+- **Capacity Management**: Update desired capacity with real-time feedback
+- **Health Monitoring**: Track current vs desired instance counts
+- **Launch Template Info**: View associated launch templates and target groups
+
+### ✨ Load Balancer Management
+- **ALB/NLB Support**: List both Application and Network Load Balancers
+- **Health Monitoring**: Real-time target health status across all target groups
+- **Configuration Details**: Schemes, availability zones, and creation times
+- **Target Group Analysis**: Healthy vs unhealthy target counts
+
+### ✨ Enhanced Cross-Region Support
+- **Global Instance Discovery**: Find EC2 instances across ALL AWS regions
+- **Regional Summaries**: Get instance counts and states by region
+- **Multi-Region Operations**: Consistent API across all supported regions
+
+### ✨ Improved Error Handling
+- **Graceful Degradation**: Falls back to demo mode when AWS unavailable
+- **Region-Specific Errors**: Continues operations even if some regions fail
+- **Detailed Error Messages**: Clear feedback on permission or configuration issues
+
+## 🔄 Detailed Data Flow
+
+### Enhanced Tool Execution Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> QueryReceived
+    QueryReceived --> ParseQuery
+    ParseQuery --> IdentifyService: Multi-service query
+    ParseQuery --> SelectTool: Single service query
     
-    style START fill:#e3f2fd
-    style SUCCESS fill:#e8f5e8
-    style DEMOSUCCESS fill:#fff3e0
-    style RETURN fill:#e1f5fe
+    IdentifyService --> ExecuteMultiple
+    ExecuteMultiple --> MergeResults
+    MergeResults --> FormatResponse
+    
+    SelectTool --> ValidateParams
+    ValidateParams --> CheckCredentials
+    
+    CheckCredentials --> ExecuteReal: AWS Available
+    CheckCredentials --> ExecuteDemo: AWS Unavailable
+    
+    ExecuteReal --> HandleRegions: Multi-region tool
+    ExecuteReal --> CallAPI: Single region tool
+    
+    HandleRegions --> CallAPI
+    CallAPI --> ProcessResponse
+    ExecuteDemo --> GenerateDemo
+    GenerateDemo --> ProcessResponse
+    
+    ProcessResponse --> FormatResponse
+    FormatResponse --> [*]
+    
+    CallAPI --> HandleError: API Error
+    HandleError --> FallbackDemo: Recoverable
+    HandleError --> ErrorResponse: Fatal
+    FallbackDemo --> GenerateDemo
+    ErrorResponse --> [*]
 ```
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+### Adding New AWS Services
 
-## 📄 License
+To add support for new AWS services:
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+1. **Add AWS Client**: Create client connection in `get_aws_session()`
+2. **Implement Tool**: Add new `@mcp.tool()` function
+3. **Add Demo Data**: Include demo responses for offline mode
+4. **Update Help**: Add service information to `get_aws_help()`
+5. **Test**: Ensure both live and demo modes work
+6. **Document**: Update this README with new capabilities
 
-## 🙏 Acknowledgments
+### Example: Adding ECS Support
 
-- **Model Context Protocol (MCP)** by Anthropic
-- **Google Gemini 2.5 Flash** for AI capabilities
-- **AWS SDK for Python (Boto3)** for AWS integration
-- **FastMCP** for server framework
+```python
+@mcp.tool()
+def list_ecs_clusters(region: str = "us-east-1") -> Dict[str, Any]:
+    """List ECS clusters with detailed information"""
+    if not check_aws_available():
+        return {"error": "AWS not available", "demo_data": {...}}
+    
+    try:
+        session = get_aws_session()
+        ecs = session.client('ecs', region_name=region)
+        # Implementation here
+    except Exception as e:
+        return {"error": f"Failed to list ECS clusters: {str(e)}"}
+```
 
 ## 📞 Support
 
 For issues and questions:
 1. Check the troubleshooting section above
-2. Run the test scripts to diagnose issues
+2. Run the test scripts to diagnose issues: `python3 test_local.py`
 3. Check AWS CloudTrail for API call errors
 4. Verify all prerequisites are met
+5. Ensure IAM permissions include all required services
+
+### Common Permission Issues
+
+If you encounter permission errors:
+
+```bash
+# Check current AWS identity
+aws sts get-caller-identity
+
+# Test specific service access
+aws ec2 describe-instances --region us-east-1
+aws s3 ls
+aws iam list-users
+aws rds describe-db-instances --region us-east-1
+aws autoscaling describe-auto-scaling-groups --region us-east-1
+aws elbv2 describe-load-balancers --region us-east-1
+```
 
 ---
 
 **Happy Cloud Managing! 🌩️**
+
+**NEW in v2.0**: Complete AWS infrastructure management with IAM security, RDS databases, Auto Scaling, and Load Balancers! 🚀
